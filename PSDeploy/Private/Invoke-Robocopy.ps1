@@ -4,6 +4,9 @@
 
 .Parameter Path
     String. Source path. You can use relative path.
+    
+.Parameter Files
+    String. filemasks you intend to copy.
 
 .Parameter Destination
     Array of destination paths. You can use relative paths.
@@ -48,6 +51,9 @@ function Invoke-Robocopy
         [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
         [ValidateScript({Test-Path -Path $_})]
         [string]$Path,
+        
+        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
+        [string[]]$Files='*.*',
 
         [Parameter(Mandatory = $true, ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true)]
         [string[]]$Destination,
@@ -113,7 +119,9 @@ function Invoke-Robocopy
             $AllArguments = @(
                 (Resolve-Path -Path $Path).ProviderPath -replace '\\+$'
             ) + (
-                $item | ForEach-Object {
+            @($Files)
+
+            )+($item | ForEach-Object {
                     $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($_) -replace '\\+$'
                 }
             ) + $ArgumentList + "/R:$Retry"
@@ -133,7 +141,7 @@ function Invoke-Robocopy
                 } else {
                     $ErrorMessage =  @($Result.ExitCode) + (
                         # Try to provide additional info about error.
-                        # WARNING: This WILL fail in localized Windows. E.g., "Œÿ»¡ ¿" in Russian.
+                        # WARNING: This WILL fail in localized Windows. E.g., "√é√ò√à√Å√ä√Ä" in Russian.
                         $Result.StdOut | Select-String -Pattern '\s*ERROR\s+:\s+(.+)' | ForEach-Object {
                             $_.Matches.Groups[1].Value
                         }
